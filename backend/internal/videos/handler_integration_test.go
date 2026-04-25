@@ -49,7 +49,7 @@ func (r *fakeVideoRepo) Update(ctx context.Context, v *videos.Video) error {
 func TestServeManifestForReadyVideo(t *testing.T) {
 	repo := newFakeVideoRepo()
 	storage := local.New(t.TempDir())
-	service := videos.NewService(repo, storage)
+	service := videos.NewService(repo, storage, nil)
 	handler := videos.NewHandler(service, storage)
 	e := echo.New()
 	e.GET("/videos/:id/stream/manifest.mpd", handler.Manifest)
@@ -82,7 +82,7 @@ func TestServeManifestForReadyVideo(t *testing.T) {
 func TestUploadAndListVideos(t *testing.T) {
 	repo := newFakeVideoRepo()
 	storage := local.New(t.TempDir())
-	service := videos.NewService(repo, storage)
+	service := videos.NewService(repo, storage, nil)
 	handler := videos.NewHandler(service, storage)
 	e := echo.New()
 	e.POST("/videos", handler.Create)

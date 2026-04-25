@@ -2,16 +2,32 @@ package main
 
 import (
 	"log"
+	"os"
 
-	"github.com/labstack/echo/v4"
+	"spec-streaming/backend/internal/jobs"
 	"spec-streaming/backend/internal/platform/http"
+	"spec-streaming/backend/internal/storage/local"
+	"spec-streaming/backend/internal/videos"
 )
 
 func main() {
-	e := echo.New()
-	_ = http.NewRouter(nil) // placeholder until wiring is complete
-	log.Println("API starting on :8080")
-	if err := e.Start(":8080"); err != nil {
+	storage := local.New("tmp/storage")
+	videoRepo := videos.NewMemoryRepository()
+	jobRepo := jobs.NewMemoryRepository()
+
+	jobService := jobs.NewService(jobRepo)
+	videoService := videos.NewService(videoRepo, storage, jobService)
+
+	videoHandler := videos.NewHandler(videoService, storage)
+
+	e := http.NewRouter(videoHandler)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("API starting on :%s", port)
+	if err := e.Start(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }
