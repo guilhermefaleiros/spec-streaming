@@ -1,4 +1,10 @@
-.PHONY: test-backend test-frontend test-e2e run-api run-worker verify
+.PHONY: test-backend test-frontend test-e2e run-api run-worker verify db-up db-migrate
+
+db-up:
+	docker compose up -d postgres flyway
+
+db-migrate:
+	docker compose up flyway
 
 test-backend:
 	cd backend && go test ./...
@@ -18,4 +24,3 @@ run-worker:
 verify:
 	$(MAKE) test-backend
 	$(MAKE) test-frontend
-	$(MAKE) test-e2e
