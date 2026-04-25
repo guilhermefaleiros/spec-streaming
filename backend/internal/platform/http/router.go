@@ -11,5 +11,7 @@ func NewRouter(videoHandler *videos.Handler) *echo.Echo {
 	e.GET("/videos", videoHandler.List)
 	e.GET("/videos/:id", videoHandler.Get)
 	e.GET("/videos/:id/status", videoHandler.Status)
+	e.GET("/videos/:id/stream/manifest.mpd", videoHandler.Manifest)
+	e.GET("/videos/:id/stream/*", videoHandler.Segment)
 	return e
 }
