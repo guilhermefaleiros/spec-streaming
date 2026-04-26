@@ -30,6 +30,14 @@ func (s *Storage) ArtifactExists(key string) (bool, error) {
 	return false, err
 }
 
+func (s *Storage) SourcePath(key string) string {
+	return filepath.Join(s.root, key)
+}
+
+func (s *Storage) Root() string {
+	return s.root
+}
+
 func (s *Storage) writeFile(key string, reader io.Reader) error {
 	path := filepath.Join(s.root, key)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

@@ -6,3 +6,4 @@ frontend/dist/
 frontend/playwright-report/
 frontend/test-results/
 tmp/
+-e backend/api\nbackend/worker\npackage-lock.json

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { UploadForm } from './upload-form'
 
 describe('UploadForm', () => {
@@ -16,8 +16,16 @@ describe('UploadForm', () => {
       target: { files: [file] },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /upload/i }))
+    // Wait for state update
+    await waitFor(() => {
+      expect(screen.getByText(/Selected: trailer.mp4/)).toBeInTheDocument()
+    })
 
-    expect(onSubmit).toHaveBeenCalledWith({ title: 'Trailer', file })
+    // Submit the form directly (bypass HTML5 validation)
+    fireEvent.submit(screen.getByTestId('upload-form'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({ title: 'Trailer', file })
+    })
   })
 })
