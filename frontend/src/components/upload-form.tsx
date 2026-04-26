@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 type Props = {
   onSubmit: (input: { title: string; file: File }) => Promise<void>
@@ -8,89 +11,43 @@ export function UploadForm({ onSubmit }: Props) {
   const [title, setTitle] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!file) return
+    setError('')
     setIsSubmitting(true)
     try {
       await onSubmit({ title, file })
       setTitle('')
       setFile(null)
+    } catch {
+      setError('Upload failed. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} data-testid="upload-form">
-      <div style={{ marginBottom: '15px' }}>
-        <label 
-          htmlFor="title" 
-          style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}
-        >
-          Title
-        </label>
-        <input
-          id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter video title"
-          style={{ 
-            width: '100%', 
-            padding: '10px', 
-            fontSize: '16px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            boxSizing: 'border-box'
-          }}
-          required
-        />
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit} data-testid="upload-form">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="title">Title</Label>
+        <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter video title" required />
       </div>
-      <div style={{ marginBottom: '15px' }}>
-        <label 
-          htmlFor="file" 
-          style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}
-        >
-          File
-        </label>
-        <input
-          id="file"
-          type="file"
-          accept="video/mp4"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          style={{ 
-            width: '100%', 
-            padding: '10px', 
-            fontSize: '16px',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            boxSizing: 'border-box'
-          }}
-          required
-        />
-        {file && (
-          <p style={{ marginTop: '5px', fontSize: '14px', color: '#666' }}>
-            Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-          </p>
-        )}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="file">File</Label>
+        <Input id="file" type="file" accept="video/mp4" onChange={(e) => setFile(e.target.files?.[0] ?? null)} required />
+        {file ? <p className="text-sm text-muted-foreground">Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</p> : null}
       </div>
-      <button 
-        type="submit" 
-        disabled={isSubmitting || !file}
-        style={{ 
-          padding: '12px 24px', 
-          fontSize: '16px',
-          backgroundColor: isSubmitting || !file ? '#ccc' : '#2196f3',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: isSubmitting || !file ? 'not-allowed' : 'pointer'
-        }}
-      >
+      {error ? (
+        <p className="text-sm text-destructive" role="alert" aria-live="polite">
+          {error}
+        </p>
+      ) : null}
+      <Button type="submit" disabled={isSubmitting || !file}>
         {isSubmitting ? 'Uploading...' : 'Upload'}
-      </button>
+      </Button>
     </form>
   )
 }

@@ -3,6 +3,7 @@ package videos_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -86,6 +87,7 @@ func TestUploadAndListVideos(t *testing.T) {
 	handler := videos.NewHandler(service, storage)
 	e := echo.New()
 	e.POST("/videos", handler.Create)
+	e.GET("/videos", handler.List)
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -102,5 +104,129 @@ func TestUploadAndListVideos(t *testing.T) {
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", rec.Code)
+	}
+
+	var created map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil {
+		t.Fatalf("unmarshal create response: %v", err)
+	}
+	if _, ok := created["id"]; !ok {
+		t.Fatalf("expected camelCase create response, got %#v", created)
+	}
+	if _, ok := created["ID"]; ok {
+		t.Fatalf("expected uppercase create keys to be absent, got %#v", created)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/videos", nil)
+	listRec := httptest.NewRecorder()
+	e.ServeHTTP(listRec, listReq)
+
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 from list, got %d", listRec.Code)
+	}
+
+	var listed []map[string]any
+	if err := json.Unmarshal(listRec.Body.Bytes(), &listed); err != nil {
+		t.Fatalf("unmarshal list response: %v", err)
+	}
+	if len(listed) != 1 {
+		t.Fatalf("expected 1 listed video, got %d", len(listed))
+	}
+	if _, ok := listed[0]["status"]; !ok {
+		t.Fatalf("expected camelCase list response, got %#v", listed[0])
+	}
+	if _, ok := listed[0]["Status"]; ok {
+		t.Fatalf("expected uppercase list keys to be absent, got %#v", listed[0])
+	}
+}
+
+func TestListVideosReturnsCamelCaseJSON(t *testing.T) {
+	repo := newFakeVideoRepo()
+	storage := local.New(t.TempDir())
+	service := videos.NewService(repo, storage, nil)
+	handler := videos.NewHandler(service, storage)
+	e := echo.New()
+	e.GET("/videos", handler.List)
+
+	repo.videos["vid-1"] = &videos.Video{
+		ID:               "vid-1",
+		Title:            "Trailer",
+		OriginalFilename: "trailer.mp4",
+		Status:           videos.StatusReady,
+		SourceStorageKey: "sources/vid-1",
+		ManifestKey:      "artifacts/vid-1/manifest.mpd",
+		ErrorMessage:     "",
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/videos", nil)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var payload []map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if len(payload) != 1 {
+		t.Fatalf("expected 1 video, got %d", len(payload))
+	}
+
+	video := payload[0]
+	if video["id"] != "vid-1" {
+		t.Fatalf("expected camelCase id, got %#v", video)
+	}
+	if video["title"] != "Trailer" {
+		t.Fatalf("expected camelCase title, got %#v", video)
+	}
+	if video["status"] != "ready" {
+		t.Fatalf("expected camelCase status, got %#v", video)
+	}
+	if _, ok := video["ID"]; ok {
+		t.Fatalf("expected uppercase keys to be absent, got %#v", video)
+	}
+}
+
+func TestGetVideoReturnsCamelCaseJSON(t *testing.T) {
+	repo := newFakeVideoRepo()
+	storage := local.New(t.TempDir())
+	service := videos.NewService(repo, storage, nil)
+	handler := videos.NewHandler(service, storage)
+	e := echo.New()
+	e.GET("/videos/:id", handler.Get)
+
+	repo.videos["vid-1"] = &videos.Video{
+		ID:               "vid-1",
+		Title:            "Trailer",
+		OriginalFilename: "trailer.mp4",
+		Status:           videos.StatusReady,
+		SourceStorageKey: "sources/vid-1",
+		ManifestKey:      "artifacts/vid-1/manifest.mpd",
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/videos/vid-1", nil)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal get response: %v", err)
+	}
+
+	if payload["id"] != "vid-1" {
+		t.Fatalf("expected camelCase id, got %#v", payload)
+	}
+	if payload["status"] != "ready" {
+		t.Fatalf("expected camelCase status, got %#v", payload)
+	}
+	if _, ok := payload["ID"]; ok {
+		t.Fatalf("expected uppercase keys to be absent, got %#v", payload)
 	}
 }

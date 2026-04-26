@@ -2,6 +2,25 @@ import { VideoItem } from './types'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
+type VideoPayload = Partial<VideoItem> & {
+  ID?: string
+  Title?: string
+  Status?: string
+  ErrorMessage?: string
+  OriginalFilename?: string
+  SourceStorageKey?: string
+  ManifestKey?: string
+}
+
+function normalizeVideo(payload: VideoPayload): VideoItem {
+  return {
+    id: payload.id ?? payload.ID ?? '',
+    title: payload.title ?? payload.Title ?? '',
+    status: (payload.status ?? payload.Status ?? 'uploaded') as VideoItem['status'],
+    errorMessage: payload.errorMessage ?? payload.ErrorMessage ?? '',
+  }
+}
+
 export async function uploadVideo(input: { title: string; file: File }): Promise<VideoItem> {
   const formData = new FormData()
   formData.append('title', input.title)
@@ -14,20 +33,16 @@ export async function uploadVideo(input: { title: string; file: File }): Promise
   if (!res.ok) {
     throw new Error('Upload failed')
   }
-  return res.json()
+  return normalizeVideo(await res.json())
 }
 
 export async function listVideos(): Promise<VideoItem[]> {
-  try {
-    const res = await fetch(`${API_BASE}/videos`)
-    if (!res.ok) {
-      throw new Error('Failed to list videos')
-    }
-    const data = await res.json()
-    return Array.isArray(data) ? data : []
-  } catch {
-    return []
+  const res = await fetch(`${API_BASE}/videos`)
+  if (!res.ok) {
+    throw new Error('Failed to list videos')
   }
+  const data = await res.json()
+  return Array.isArray(data) ? data.map((item) => normalizeVideo(item)) : []
 }
 
 export async function getVideo(id: string): Promise<VideoItem> {
@@ -35,5 +50,5 @@ export async function getVideo(id: string): Promise<VideoItem> {
   if (!res.ok) {
     throw new Error('Failed to get video')
   }
-  return res.json()
+  return normalizeVideo(await res.json())
 }

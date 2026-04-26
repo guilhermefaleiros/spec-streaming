@@ -12,13 +12,13 @@ const (
 )
 
 type Video struct {
-	ID               string
-	Title            string
-	OriginalFilename string
-	Status           Status
-	SourceStorageKey string
-	ManifestKey      string
-	ErrorMessage     string
+	ID               string `json:"id"`
+	Title            string `json:"title"`
+	OriginalFilename string `json:"originalFilename"`
+	Status           Status `json:"status"`
+	SourceStorageKey string `json:"sourceStorageKey"`
+	ManifestKey      string `json:"manifestKey"`
+	ErrorMessage     string `json:"errorMessage"`
 }
 
 func (v *Video) MarkProcessing() error {

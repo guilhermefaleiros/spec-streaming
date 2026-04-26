@@ -14,6 +14,36 @@ type Handler struct {
 	storage storage.Storage
 }
 
+type response struct {
+	ID               string `json:"id"`
+	Title            string `json:"title"`
+	OriginalFilename string `json:"originalFilename"`
+	Status           string `json:"status"`
+	SourceStorageKey string `json:"sourceStorageKey"`
+	ManifestKey      string `json:"manifestKey"`
+	ErrorMessage     string `json:"errorMessage"`
+}
+
+func toResponse(video *Video) response {
+	return response{
+		ID:               video.ID,
+		Title:            video.Title,
+		OriginalFilename: video.OriginalFilename,
+		Status:           string(video.Status),
+		SourceStorageKey: video.SourceStorageKey,
+		ManifestKey:      video.ManifestKey,
+		ErrorMessage:     video.ErrorMessage,
+	}
+}
+
+func toResponses(videos []Video) []response {
+	items := make([]response, 0, len(videos))
+	for i := range videos {
+		items = append(items, toResponse(&videos[i]))
+	}
+	return items
+}
+
 func NewHandler(service *Service, storage storage.Storage) *Handler {
 	return &Handler{service: service, storage: storage}
 }
@@ -36,7 +66,7 @@ func (h *Handler) Create(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusCreated, video)
+	return c.JSON(http.StatusCreated, toResponse(video))
 }
 
 func (h *Handler) List(c echo.Context) error {
@@ -44,7 +74,7 @@ func (h *Handler) List(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusOK, videos)
+	return c.JSON(http.StatusOK, toResponses(videos))
 }
 
 func (h *Handler) Get(c echo.Context) error {
@@ -53,7 +83,7 @@ func (h *Handler) Get(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "not found"})
 	}
-	return c.JSON(http.StatusOK, video)
+	return c.JSON(http.StatusOK, toResponse(video))
 }
 
 func (h *Handler) Status(c echo.Context) error {

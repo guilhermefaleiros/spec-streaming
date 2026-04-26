@@ -1,90 +1,76 @@
-import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { getVideo } from '../lib/api'
-import { VideoItem } from '../lib/types'
-import { VideoPlayer } from '../components/video-player'
+import { useParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { PlayerStatusPanel } from '@/components/player-status-panel'
+import { VideoPlayer } from '@/components/video-player'
+import { useVideoQuery } from '@/lib/queries'
 
 export function VideoPage() {
   const { id } = useParams<{ id: string }>()
-  const [video, setVideo] = useState<VideoItem | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const query = useVideoQuery(id ?? '')
 
-  useEffect(() => {
-    if (!id) return
-    getVideo(id)
-      .then(setVideo)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load video'))
-  }, [id])
-
-  if (error) {
+  if (query.isLoading) {
     return (
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-        <Link to="/" style={{ color: '#2196f3', textDecoration: 'none' }}>← Back to list</Link>
-        <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#ffebee', color: '#c62828', borderRadius: '8px' }}>
-          Error: {error}
-        </div>
-      </div>
+      <Card className="border-border bg-card">
+        <CardContent className="flex flex-col gap-3 p-6">
+          <p className="text-sm text-muted-foreground">Loading...</p>
+          <Button asChild variant="secondary" className="w-fit">
+            <Link to="/catalog">Back to catalog</Link>
+          </Button>
+        </CardContent>
+      </Card>
     )
   }
 
-  if (!video) {
+  if (query.isError || !query.data) {
     return (
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-        <Link to="/" style={{ color: '#2196f3', textDecoration: 'none' }}>← Back to list</Link>
-        <p style={{ marginTop: '20px' }}>Loading...</p>
-      </div>
+      <Card className="border-border bg-card">
+        <CardContent className="flex flex-col gap-3 p-6">
+          <p className="text-sm text-destructive">Failed to load video.</p>
+          <Button asChild variant="secondary" className="w-fit">
+            <Link to="/catalog">Back to catalog</Link>
+          </Button>
+        </CardContent>
+      </Card>
     )
   }
 
+  const video = query.data
   const manifestUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/videos/${video.id}/stream/manifest.mpd`
-
-  const statusColors: Record<string, string> = {
-    uploaded: '#ff9800',
-    processing: '#2196f3',
-    ready: '#4caf50',
-    failed: '#f44336'
-  }
+  const failure = video.status === 'failed'
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <Link to="/" style={{ color: '#2196f3', textDecoration: 'none' }}>← Back to list</Link>
-      
-      <div style={{ marginTop: '20px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1 style={{ margin: 0 }}>{video.title}</h1>
-          <span style={{ 
-            padding: '4px 12px', 
-            borderRadius: '12px',
-            backgroundColor: statusColors[video.status] || '#999',
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase'
-          }}>
-            {video.status}
-          </span>
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <CardTitle>{video.title}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          <PlayerStatusPanel title="Playback" status={video.status} />
+          {video.errorMessage ? <p className="text-sm text-muted-foreground">{video.errorMessage}</p> : null}
         </div>
-
-        {video.status === 'ready' ? (
-          <VideoPlayer manifestUrl={manifestUrl} />
+        {failure ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted p-4">
+            <p className="text-sm text-destructive">Playback failed.</p>
+            {video.errorMessage ? <p className="text-sm text-muted-foreground">{video.errorMessage}</p> : null}
+            <Button asChild variant="secondary" className="w-fit">
+              <Link to="/catalog">Back to catalog</Link>
+            </Button>
+          </div>
+        ) : video.status === 'ready' ? (
+          <VideoPlayer title={video.title} manifestUrl={manifestUrl} />
         ) : (
-          <div style={{ 
-            padding: '40px', 
-            textAlign: 'center', 
-            backgroundColor: '#f5f5f5',
-            borderRadius: '8px'
-          }}>
-            <p>Video is not ready for playback.</p>
-            <p style={{ color: '#666' }}>Current status: {video.status}</p>
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted p-4">
+            <p className="text-sm text-muted-foreground">
+              Video is not ready for playback.
+            </p>
+            <Button asChild variant="secondary" className="w-fit">
+              <Link to="/catalog">Back to catalog</Link>
+            </Button>
           </div>
         )}
-
-        {video.errorMessage && (
-          <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#ffebee', color: '#c62828', borderRadius: '4px' }}>
-            Error: {video.errorMessage}
-          </div>
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
