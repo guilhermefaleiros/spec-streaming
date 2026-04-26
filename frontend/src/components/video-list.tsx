@@ -6,7 +6,7 @@ type Props = {
 }
 
 export function VideoList({ videos }: Props) {
-  if (videos.length === 0) {
+  if (!videos || videos.length === 0) {
     return <p style={{ color: '#666', fontStyle: 'italic' }}>No videos yet. Upload one!</p>
   }
 

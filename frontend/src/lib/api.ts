@@ -18,11 +18,16 @@ export async function uploadVideo(input: { title: string; file: File }): Promise
 }
 
 export async function listVideos(): Promise<VideoItem[]> {
-  const res = await fetch(`${API_BASE}/videos`)
-  if (!res.ok) {
-    throw new Error('Failed to list videos')
+  try {
+    const res = await fetch(`${API_BASE}/videos`)
+    if (!res.ok) {
+      throw new Error('Failed to list videos')
+    }
+    const data = await res.json()
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
   }
-  return res.json()
 }
 
 export async function getVideo(id: string): Promise<VideoItem> {
