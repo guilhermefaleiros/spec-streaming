@@ -1,0 +1,11 @@
+.DS_Store
+backend/.cache/
+backend/bin/
+frontend/node_modules/
+frontend/dist/
+frontend/playwright-report/
+frontend/test-results/
+frontend/*.tsbuildinfo
+tmp/
+.worktrees/
+-e backend/api\nbackend/worker\npackage-lock.json
